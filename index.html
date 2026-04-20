@@ -2,36 +2,41 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>아이톡톡 동의서 작성 프로그램</title>
+    <title>아이톡톡 동의서 작성</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <style>
         body { background-color: #525659; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: 'Malgun Gothic', sans-serif; }
         
-        /* 문서 영역: 배경 이미지를 깔아 원본과 똑같이 보이게 함 */
+        /* 이미지 크기에 맞춰 영역 설정 */
         #pdf-page { 
-            width: 210mm; height: 297mm; 
-            background: url('background.jpg') no-repeat center center; 
+            width: 800px; height: 350px; 
+            background: url('form_image.png') no-repeat center center; 
             background-size: contain;
             position: relative; 
             background-color: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* 입력창 위치 조정 (원본 파일의 빈칸 위치에 맞게 세밀하게 조정 가능) */
-        .input-overlay { position: absolute; font-size: 14pt; font-weight: bold; }
-        
-        #check-agree { top: 715px; left: 345px; transform: scale(1.5); cursor: pointer; } /* '동의' 체크박스 위치 */
-        
-        #input-grade { top: 765px; left: 245px; width: 35px; border: none; background: transparent; text-align: center; font-size: 13pt; }
-        #input-class { top: 765px; left: 325px; width: 35px; border: none; background: transparent; text-align: center; font-size: 13pt; }
-        #input-name  { top: 765px; left: 455px; width: 100px; border: none; background: transparent; text-align: left; font-size: 13pt; }
-        
-        /* 서명 패드 위치 */
-        .signature-wrapper { position: absolute; top: 790px; left: 395px; }
-        #signature-pad { border: 1px dashed #ccc; background-color: rgba(255, 255, 255, 0.5); }
+        .input-overlay { position: absolute; border: none; background: transparent; font-size: 14pt; outline: none; }
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
-        .controls { margin-bottom: 20px; position: sticky; top: 0; z-index: 100; }
+        /* 위치 세부 조정 */
+        #year   { top: 185px; left: 435px; width: 45px; text-align: center; }
+        #month  { top: 185px; left: 515px; width: 35px; text-align: center; }
+        #day    { top: 185px; left: 585px; width: 35px; text-align: center; }
+
+        #grade  { top: 255px; left: 35px; width: 40px; text-align: center; }
+        #class  { top: 255px; left: 140px; width: 40px; text-align: center; }
+        #name   { top: 255px; left: 290px; width: 120px; text-align: left; }
+        
+        #parent { top: 300px; left: 175px; width: 120px; text-align: left; }
+
+        /* 서명 패드 위치 */
+        .signature-wrapper { position: absolute; top: 235px; left: 700px; }
+        #signature-pad { border: 1px dashed #ccc; background-color: rgba(255, 255, 255, 0.3); }
+
+        .controls { margin-bottom: 20px; }
         button { padding: 10px 20px; font-size: 12pt; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
         .clear-btn { background: #6c757d; margin-left: 10px; }
     </style>
@@ -39,45 +44,50 @@
 <body>
 
 <div class="controls">
-    <button onclick="savePDF()">작성 완료 및 PDF 저장</button>
+    <button onclick="savePDF()">PDF 저장하기</button>
     <button class="clear-btn" onclick="clearSignature()">서명 지우기</button>
 </div>
 
 <div id="pdf-page">
-    <input type="checkbox" id="check-agree" class="input-overlay">
+    <input type="number" id="year" class="input-overlay" placeholder="26">
+    <input type="number" id="month" class="input-overlay">
+    <input type="number" id="day" class="input-overlay">
 
-    <input type="number" id="input-grade" class="input-overlay">
-    <input type="number" id="input-class" class="input-overlay">
-    <input type="text" id="input-name" class="input-overlay">
+    <input type="number" id="grade" class="input-overlay">
+    <input type="number" id="class" class="input-overlay">
+    <input type="text" id="name" class="input-overlay">
+
+    <input type="text" id="parent" class="input-overlay">
 
     <div class="signature-wrapper">
-        <canvas id="signature-pad" width="220" height="80"></canvas>
+        <canvas id="signature-pad" width="150" height="60"></canvas>
     </div>
 </div>
 
 <script>
     const canvas = document.getElementById('signature-pad');
-    const signaturePad = new SignaturePad(canvas);
+    const signaturePad = new SignaturePad(canvas, {
+        minWidth: 1,
+        maxWidth: 2,
+        penColor: "black"
+    });
 
     function clearSignature() {
         signaturePad.clear();
     }
 
     function savePDF() {
-        if (!document.getElementById('check-agree').checked) {
-            alert("동의란에 체크해주세요."); return;
-        }
-        const name = document.getElementById('input-name').value;
-        if (!name) { alert("이름을 입력해주세요."); return; }
-
+        const name = document.getElementById('name').value || '동의서';
         const element = document.getElementById('pdf-page');
+        
         const opt = {
             margin: 0,
-            filename: `아이톡톡_동의서_${name}.pdf`,
+            filename: `${name}_동의서.pdf`,
             image: { type: 'jpeg', quality: 1.0 },
             html2canvas: { scale: 3 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            jsPDF: { unit: 'px', format: [800, 350], orientation: 'landscape' }
         };
+
         html2pdf().set(opt).from(element).save();
     }
 </script>
