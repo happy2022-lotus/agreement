@@ -52,11 +52,13 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.6);
             background: white;
             line-height: 0;
+            /* 화면에 보여지는 크기만 제한 */
+            max-width: 95vw; 
         }
 
         /* 원본 배경 이미지 */
         #bg-img {
-            width: 210mm; /* A4 너비 표준 */
+            width: 210mm; /* 화면 표시용 너비 (A4 기준) */
             height: auto;
             display: block;
         }
@@ -68,6 +70,8 @@
             left: 0;
             cursor: crosshair;
             touch-action: none;
+            width: 100%; /* 이미지와 동일한 비율로 화면 표시 */
+            height: 100%;
         }
 
         .loading-overlay {
@@ -94,7 +98,6 @@
 </div>
 
 <div id="container">
-    <!-- 깃허브에 함께 올릴 background.jpg 파일을 자동으로 로드합니다 -->
     <img id="bg-img" src="./background.jpg" alt="동의서 양식" onerror="handleImgError()">
     <canvas id="draw-canvas"></canvas>
 </div>
@@ -110,18 +113,17 @@
     let isDrawing = false;
     let currentTool = 'pen';
 
-    // 이미지 로드 완료 시 캔버스 크기를 이미지와 동일하게 설정
+    // 중요: 이미지의 '실제' 해상도에 맞춰 캔버스 픽셀 크기 설정
     bgImg.onload = function() {
-        canvas.width = bgImg.width;
-        canvas.height = bgImg.height;
-        // 해상도가 낮게 보일 경우를 대비해 컨텍스트 초기화
+        canvas.width = bgImg.naturalWidth;
+        canvas.height = bgImg.naturalHeight;
+        
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
     };
 
     function handleImgError() {
-        console.error("배경 이미지를 불러오지 못했습니다. 경로와 파일명을 확인하세요.");
-        alert("양식 이미지(background.jpg)를 찾을 수 없습니다.\n깃허브 리포지토리에 background.jpg 파일이 index.html과 같은 위치에 있는지 확인해 주세요.");
+        alert("양식 이미지(background.jpg)를 찾을 수 없습니다.\n깃허브에 파일이 있는지 확인해 주세요.");
     }
 
     function setTool(tool) {
@@ -136,16 +138,19 @@
         }
     }
 
+    // 화면 좌표를 캔버스의 실제 픽셀 좌표로 변환
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        // 터치 이벤트와 마우스 이벤트 통합 처리
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // 캔버스 실제 크기와 화면 표시 크기 비율 계산
+        // 중요: 비율 계산 (실제 픽셀 / 화면 표시 크기)
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
         return {
-            x: (clientX - rect.left) * (canvas.width / rect.width),
-            y: (clientY - rect.top) * (canvas.height / rect.height)
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
@@ -154,7 +159,6 @@
         const pos = getPos(e);
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
-        // 터치 시 화면 스크롤 방지
         if (e.cancelable) e.preventDefault();
     }
 
@@ -164,47 +168,41 @@
 
         if (currentTool === 'pen') {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = '#000000'; // 검정색
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#000000';
+            // 고해상도 이미지일 경우 펜 굵기가 너무 얇아 보일 수 있으므로 비율에 맞춰 조정
+            ctx.lineWidth = (canvas.width / 800) * 3; 
             ctx.lineTo(pos.x, pos.y);
             ctx.stroke();
         } else {
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = 30; // 지우개는 조금 더 넓게
+            ctx.lineWidth = (canvas.width / 800) * 30;
             ctx.lineTo(pos.x, pos.y);
             ctx.stroke();
         }
         if (e.cancelable) e.preventDefault();
     }
 
-    function stopDraw() { 
-        isDrawing = false; 
-    }
+    function stopDraw() { isDrawing = false; }
 
-    // 이벤트 리스너 등록
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', draw);
     window.addEventListener('mouseup', stopDraw);
-
     canvas.addEventListener('touchstart', startDraw, { passive: false });
     canvas.addEventListener('touchmove', draw, { passive: false });
     window.addEventListener('touchend', stopDraw);
 
     async function saveFile(type) {
         document.getElementById('loading').style.display = 'flex';
-        
-        // 브라우저가 처리를 마칠 시간을 주기 위해 약간의 지연 추가
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 150));
 
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = canvas.width;
         finalCanvas.height = canvas.height;
         const fCtx = finalCanvas.getContext('2d');
 
-        // 1. 배경 이미지 합성
-        fCtx.drawImage(bgImg, 0, 0);
-        // 2. 필기 내용 합성
-        fCtx.drawImage(canvas, 0, 0);
+        // 원본 품질 유지를 위해 drawImage 시 실제 너비/높이 명시
+        fCtx.drawImage(bgImg, 0, 0, finalCanvas.width, finalCanvas.height);
+        fCtx.drawImage(canvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
         const fileName = '아이톡톡_동의서_완성';
 
@@ -217,6 +215,7 @@
             const { jsPDF } = window.jspdf;
             const imgData = finalCanvas.toDataURL('image/jpeg', 0.95);
             
+            // 이미지의 실제 픽셀 크기 그대로 PDF 페이지 생성 (짤림 방지)
             const pdf = new jsPDF({
                 orientation: finalCanvas.width > finalCanvas.height ? 'l' : 'p',
                 unit: 'px',
