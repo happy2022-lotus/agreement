@@ -2,85 +2,101 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>아이톡톡 동의서 작성</title>
+    <title>아이톡톡 이용 동의서</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <style>
-        body { background-color: #525659; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: 'Malgun Gothic', sans-serif; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f0f0f0; padding: 20px; line-height: 1.5; }
+        #agreement-doc { width: 210mm; background: white; padding: 20mm; margin: 0 auto; box-sizing: border-box; font-size: 11pt; }
         
-        /* [중요] 이미지 파일 이름이 'form.jpg'여야 합니다. PNG라면 form.png로 수정하세요 */
-        #pdf-page { 
-            width: 800px; height: 350px; 
-            background: url('form.jpg') no-repeat center center; 
-            background-size: 100% 100%;
-            position: relative; 
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
-        .input-overlay { position: absolute; border: none; background: rgba(0,0,0,0.05); font-size: 13pt; outline: none; }
-        .input-overlay:focus { background: rgba(255, 255, 0, 0.2); }
-
-        /* 위치 세부 조정 (보내주신 이미지 폼 기준) */
-        #year   { top: 182px; left: 432px; width: 45px; text-align: center; }
-        #month  { top: 182px; left: 512px; width: 35px; text-align: center; }
-        #day    { top: 182px; left: 582px; width: 35px; text-align: center; }
-
-        #grade  { top: 252px; left: 35px; width: 40px; text-align: center; }
-        #class  { top: 252px; left: 140px; width: 40px; text-align: center; }
-        #name   { top: 252px; left: 290px; width: 120px; text-align: left; }
+        .header-title { text-align: center; font-size: 18pt; font-weight: bold; border: 1px solid #000; padding: 10px; margin-bottom: 30px; }
+        .sub-title { font-weight: bold; font-size: 13pt; margin-top: 20px; margin-bottom: 10px; }
         
-        #parent { top: 297px; left: 175px; width: 120px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; border: 1.5px solid #000; }
+        th, td { border: 1px solid #000; padding: 10px; text-align: center; font-size: 10.5pt; }
+        th { background-color: #f8f8f8; }
 
-        .signature-wrapper { position: absolute; top: 230px; left: 680px; }
-        #signature-pad { border: 1px dashed #ccc; background-color: transparent; }
+        .agree-section { text-align: center; margin: 30px 0; font-weight: bold; }
+        .input-group { margin-top: 40px; text-align: center; font-size: 12pt; }
+        .input-line { border: none; border-bottom: 1px solid #000; text-align: center; outline: none; font-size: 12pt; }
 
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
-        button { padding: 10px 20px; font-size: 12pt; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
-        .clear-btn { background: #6c757d; }
+        .signature-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+        #signature-pad { border: 1px dashed #ccc; background-color: #fdfdfd; margin-top: 10px; }
+
+        .footer { text-align: center; font-size: 16pt; font-weight: bold; margin-top: 50px; }
+        .btns { position: fixed; top: 20px; left: 20px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div class="controls">
-    <button onclick="savePDF()">PDF 저장하기</button>
-    <button class="clear-btn" onclick="clearSignature()">서명 지우기</button>
+<div class="btns">
+    <button onclick="generatePDF()">PDF 저장하기</button>
+    <button style="background:#6c757d" onclick="pad.clear()">서명 지우기</button>
 </div>
 
-<div id="pdf-page">
-    <input type="number" id="year" class="input-overlay" value="26">
-    <input type="number" id="month" class="input-overlay">
-    <input type="number" id="day" class="input-overlay">
+<div id="agreement-doc">
+    <div class="header-title">'빅데이터·AI플랫폼 아이톡톡', '아이북' 사용을 위한<br>개인정보 수집·이용 동의서(학생)</div>
 
-    <input type="number" id="grade" class="input-overlay">
-    <input type="number" id="class" class="input-overlay">
-    <input type="text" id="name" class="input-overlay">
+    <div class="sub-title">사업개요 및 개인정보 수집 동의 관련 안내사항</div>
+    <p>○ 경상남도교육청에서는 빅데이터와 인공지능을 활용한 학생 맞춤형 교육을 실현하고, 아이톡톡 플랫폼과 아이북을 활용해 개인 맞춤 학습환경을 제공하고 있습니다.</p>
 
-    <input type="text" id="parent" class="input-overlay">
+    <div class="sub-title">개인정보 수집ㆍ이용 동의</div>
+    <p>○ 『개인정보 보호법 제15조, 제22조』에 따라 아래와 같이 개인정보를 수집 및 이용하고자 합니다.</p>
 
-    <div class="signature-wrapper">
-        <canvas id="signature-pad" width="120" height="60"></canvas>
+    <table>
+        <tr>
+            <th>항목</th>
+            <th>수집·이용 목적</th>
+            <th>보유·이용기간</th>
+        </tr>
+        <tr>
+            <td>아이톡톡 계정 ID, 학교, 학년, 반, 이름, 생년월일, 교육활동 정보</td>
+            <td>교수·학습 시스템, 아이북 통합관리시스템 운영, 과제 제출, 학적정보관리 등</td>
+            <td>변경 및 삭제(졸업 및 타시도 전출 시)까지</td>
+        </tr>
+    </table>
+
+    <p>○ 동의를 거부할 권리가 있으나, 거부 시 '아이톡톡'과 '아이북' 기능 활용에 제한을 받을 수 있습니다.</p>
+
+    <div class="agree-section">
+        개인정보의 수집·이용에 동의하십니까? 
+        <label><input type="radio" name="ag" id="ag_y"> 동의</label>
+        <label><input type="radio" name="ag"> 비동의</label>
     </div>
+
+    <div class="input-group">
+        2026년 <input type="number" class="input-line" style="width:40px"> 월 <input type="number" class="input-line" style="width:40px"> 일<br><br>
+        ( <input type="number" id="gr" class="input-line" style="width:35px"> )학년 ( <input type="number" id="cl" class="input-line" style="width:35px"> )반 학생 성명: <input type="text" id="nm" class="input-line" style="width:100px"><br><br>
+        만 14세 미만의 경우( <input type="text" class="input-line" style="width:100px"> )의 법정대리인 성함
+    </div>
+
+    <div class="signature-area">
+        <span>(서명 또는 인)</span>
+        <canvas id="signature-pad" width="200" height="80"></canvas>
+    </div>
+
+    <div class="footer">가회중학교 학교장</div>
 </div>
 
 <script>
-    const canvas = document.getElementById('signature-pad');
-    const signaturePad = new SignaturePad(canvas, { minWidth: 1, maxWidth: 2, penColor: "black" });
+    const canvas = document.querySelector("canvas");
+    const pad = new SignaturePad(canvas);
 
-    function clearSignature() { signaturePad.clear(); }
+    function generatePDF() {
+        if(!document.getElementById('ag_y').checked) { alert("동의에 체크해주세요."); return; }
+        const name = document.getElementById('nm').value;
+        if(!name) { alert("성명을 입력해주세요."); return; }
+        if(pad.isEmpty()) { alert("서명을 해주세요."); return; }
 
-    function savePDF() {
-        const name = document.getElementById('name').value || '동의서';
-        const element = document.getElementById('pdf-page');
-        const opt = {
+        const element = document.getElementById('agreement-doc');
+        html2pdf().set({
             margin: 0,
-            filename: `${name}_동의서.pdf`,
-            html2canvas: { scale: 3, useCORS: true },
-            jsPDF: { unit: 'px', format: [800, 350], orientation: 'landscape' }
-        };
-        html2pdf().set(opt).from(element).save();
+            filename: `동의서_${name}.pdf`,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(element).save();
     }
 </script>
-
 </body>
 </html>
